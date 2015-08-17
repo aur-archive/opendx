@@ -1,0 +1,43 @@
+# $Id: PKGBUILD 82 2009-07-17 19:56:55Z aaron $
+# Contributor: Gustavo A. Gomez Farhat <gustavo_dot_gomez_dot_farhat at gmail_dot_com>
+# Contributor: dibblethewrecker dibblethewrecker.at.jiwe.dot.org
+
+pkgname=opendx
+pkgver=4.4.4
+pkgrel=3
+pkgdesc="A uniquely powerful, full-featured software package for the visualization of scientific, engineering and analytical data"
+arch=('i686' 'x86_64')
+url="http://www.opendx.org/"
+license=('custom')
+depends=('lesstif' 'netcdf' 'imagemagick')
+makedepends=('flex' 'mesa' 'libxpm' 'glu' 'libxinerama')
+options=('!libtool' '!makeflags')
+source=(http://www.sfr-fresh.com/unix/misc/dx-4.4.4.tar.gz opendx.desktop LICENSE)
+md5sums=('6da0c4cd21d3c08f97b7662e3aee5b7b'
+         '9e3771c3881e1126fa74225d5525c1fa'
+         'cb5e74007c76ca289235092e5c13e2cb')
+
+build() {
+  cd ${srcdir}/dx-${pkgver}
+  # some fixes
+  sed -i -e 's/fd = open(name, O_WRONLY | O_CREAT);/fd = open(name, O_WRONLY | O_CREAT, ", 0644");/' src/exec/libdx/fileio.c || return 1
+  sed -i -e 's|#include <linux/sys.h>||' src/exec/libdx/memory.c || return 1
+  ./configure --prefix=/usr/lib --exec-prefix=/usr/bin --with-javadx=no
+  make || return 1
+  make DESTDIR=${pkgdir} install || return 1
+  rm -r ${pkgdir}/usr/lib/dx/{html,doc}
+  
+  # fix bin prefix
+  mv ${pkgdir}/usr/lib/bin ${pkgdir}/usr
+  
+  # install license
+  install -D -m644 ${srcdir}/dx-${pkgver}/LICENSE ${pkgdir}/usr/share/licenses/$pkgname/LICENSE
+
+  # install freedesktop stuff
+  install -D -m644 ${srcdir}/opendx.desktop ${pkgdir}/usr/share/applications/opendx.desktop
+
+  # fix manpath - ugly but it works
+  install -D -m644 ${pkgdir}/usr/lib/dx/man/manl/dx.l ${pkgdir}/usr/share/man/manl/dx.l
+  install -D -m644 ${pkgdir}/usr/lib/dx/man/catl/dx.l ${pkgdir}/usr/share/man/catl/dx.l
+  rm -R ${pkgdir}/usr/lib/dx/man
+}
